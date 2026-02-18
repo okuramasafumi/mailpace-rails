@@ -15,10 +15,11 @@ gemspec
 # gem 'byebug', group: [:development, :test]
 
 group :test do
+  older_rails = ENV['RAILS_TEST_VERSION']&.start_with?('7.') || ENV['RAILS_TEST_VERSION']&.start_with?('6.')
   # Fix concurrent-ruby removing logger dependency in Rails 6 & 7.0
-  gem 'concurrent-ruby', '<1.3.5' if ENV['RAILS_TEST_VERSION']&.start_with?('7.') || ENV['RAILS_TEST_VERSION']&.start_with?('6.')
+  gem 'concurrent-ruby', '<1.3.5' if older_rails
   gem 'sprockets-rails'
-  gem 'sqlite3', '~> 1.4' if ENV['RAILS_TEST_VERSION']&.start_with?('7.') || ENV['RAILS_TEST_VERSION']&.start_with?('6.')
-  gem 'sqlite3' if ENV['RAILS_TEST_VERSION'] && !ENV['RAILS_TEST_VERSION'].start_with?('7.') && !ENV['RAILS_TEST_VERSION'].start_with?('6.')
+  gem 'sqlite3', '~> 1.4' if older_rails
+  gem 'sqlite3' if ENV['RAILS_TEST_VERSION'] && !older_rails
   gem 'webmock'
 end
