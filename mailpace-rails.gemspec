@@ -24,5 +24,4 @@ Gem::Specification.new do |spec|
   spec.add_dependency('activestorage', ">= 6.0.0")
 
   spec.add_development_dependency "rails", "#{ENV['RAILS_TEST_VERSION'] || '>=7.2.0'}"
-  spec.add_development_dependency "sqlite3", ">=1.4.2"
 end

@@ -18,6 +18,7 @@ group :test do
   # Fix concurrent-ruby removing logger dependency in Rails 6 & 7.0
   gem 'concurrent-ruby', '<1.3.5' if ENV['RAILS_TEST_VERSION']&.start_with?('7.') || ENV['RAILS_TEST_VERSION']&.start_with?('6.')
   gem 'sprockets-rails'
-  gem 'sqlite3', '~> 1.4'if ENV['RAILS_TEST_VERSION']&.start_with?('7.') || ENV['RAILS_TEST_VERSION']&.start_with?('6.')
+  gem 'sqlite3', '~> 1.4' if ENV['RAILS_TEST_VERSION']&.start_with?('7.') || ENV['RAILS_TEST_VERSION']&.start_with?('6.')
+  gem 'sqlite3' if ENV['RAILS_TEST_VERSION'] && !ENV['RAILS_TEST_VERSION'].start_with?('7.') && !ENV['RAILS_TEST_VERSION'].start_with?('6.')
   gem 'webmock'
 end
