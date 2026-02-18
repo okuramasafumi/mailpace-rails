@@ -1,6 +1,6 @@
 require 'action_mailer'
 require 'action_mailbox/engine'
-require 'httparty'
+require 'net/http'
 require 'uri'
 require 'json'
 require 'mailpace-rails/version'
@@ -27,32 +27,32 @@ module Mailpace
       end
 
       check_delivery_params(mail)
-      result = HTTParty.post(
-        'https://app.mailpace.com/api/v1/send',
-        body: {
-          from: address_list(mail.header[:from])&.addresses&.first.to_s,
-          to: address_list(mail.header[:to])&.addresses&.join(','),
-          subject: mail.subject,
-          htmlbody: htmlbody,
-          textbody: textbody,
-          cc: address_list(mail.header[:cc])&.addresses&.join(','),
-          bcc: address_list(mail.header[:bcc])&.addresses&.join(','),
-          replyto: address_list(mail.header[:reply_to])&.addresses&.join(','),
-          inreplyto: mail.header['In-Reply-To'].to_s,
-          references: mail.header['References'].to_s,
-          list_unsubscribe: mail.header['list_unsubscribe'].to_s,
-          attachments: format_attachments(mail.attachments),
-          tags: mail.header['tags'].to_s
-        }.delete_if { |_key, value| value.blank? }.to_json,
-        headers: {
-          'User-Agent' => "MailPace Rails Gem v#{Mailpace::Rails::VERSION}",
-          'Accept' => 'application/json',
-          'Content-Type' => 'application/json',
-          'Mailpace-Server-Token' => settings[:api_token]
-        }.tap do |h|
-          h['Idempotency-Key'] = mail.header['idempotency_key'].to_s if mail.header['idempotency_key']
-        end
-      )
+      uri = URI('https://app.mailpace.com/api/v1/send')
+      request = Net::HTTP::Post.new(uri)
+      request['User-Agent'] = "MailPace Rails Gem v#{Mailpace::Rails::VERSION}"
+      request['Accept'] = 'application/json'
+      request['Content-Type'] = 'application/json'
+      request['Mailpace-Server-Token'] = settings[:api_token]
+      request['Idempotency-Key'] = mail.header['idempotency_key'].to_s if mail.header['idempotency_key']
+      request.body = {
+        from: address_list(mail.header[:from])&.addresses&.first.to_s,
+        to: address_list(mail.header[:to])&.addresses&.join(','),
+        subject: mail.subject,
+        htmlbody: htmlbody,
+        textbody: textbody,
+        cc: address_list(mail.header[:cc])&.addresses&.join(','),
+        bcc: address_list(mail.header[:bcc])&.addresses&.join(','),
+        replyto: address_list(mail.header[:reply_to])&.addresses&.join(','),
+        inreplyto: mail.header['In-Reply-To'].to_s,
+        references: mail.header['References'].to_s,
+        list_unsubscribe: mail.header['list_unsubscribe'].to_s,
+        attachments: format_attachments(mail.attachments),
+        tags: mail.header['tags'].to_s
+      }.delete_if { |_key, value| value.blank? }.to_json
+
+      result = Net::HTTP.start(uri.hostname, uri.port, use_ssl: true) do |http|
+        http.request(request)
+      end
 
       handle_response(result)
     end
@@ -72,9 +72,9 @@ module Mailpace
     end
 
     def handle_response(result)
-      return result unless result.code != 200
+      return JSON.parse(result.body) unless result.code != '200'
 
-      parsed_response = result.parsed_response
+      parsed_response = JSON.parse(result.body)
       error_message = join_error_messages(parsed_response)
 
       raise DeliveryError, "MAILPACE Error: #{error_message}" unless error_message.empty?
